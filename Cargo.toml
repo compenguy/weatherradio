@@ -8,7 +8,11 @@ edition = "2018"
 [dependencies]
 thiserror = "1"
 anyhow = "1"
+clap = { version = "3.0.0-beta.2", default-features = false, features = ["color", "std", "cargo"] }
+log = { version = "0.4", default-features = true, features = ["std"] }
+flexi_logger = { version = "0.18", default-features = false, features = ["colors"] }
 #rtlsdr_mt = "2"
 chrono = "0.4"
 bitvec = "0.22"
 crc-any = "2"
+uom = { version = "0.31", default-features = false, features = ["autoconvert", "f32", "si", "std", "u16", "u16"] }
