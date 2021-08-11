@@ -8,33 +8,69 @@ use crate::fine_offset::ToMeasurements;
 
 const TOPIC_ROOT: &str = "ambientweather";
 
-fn publish_measurement(session: &paho_mqtt::Client, measured: Measured) -> Result<()> {
+fn publish_measurement(session: Option<&paho_mqtt::Client>, measured: Measured) -> Result<()> {
     if let Some(channel) = measured.channel {
         let topic = format!(
             "{}/Channel {}/{}",
             TOPIC_ROOT,
             channel,
-            measured.measurement.name()
+            measured.measurement.name_token()
         );
         log::debug!(
             "[{}] {} <= {}",
             measured.timestamp,
             topic,
-            measured.measurement
+            measured.measurement.value()
         );
-        let msg = paho_mqtt::Message::new(topic, measured.measurement.to_string(), 0);
-        session.publish(msg)?;
+        if let Some(client) = session {
+            let msg = paho_mqtt::Message::new(topic, measured.measurement.value(), 0);
+            client.publish(msg)?;
+        }
     } else {
-        let topic = format!("{}/{}", TOPIC_ROOT, measured.measurement.name());
+        let topic = format!("{}/{}", TOPIC_ROOT, measured.measurement.name_token());
         log::debug!(
             "[{}] {} <= {}",
             measured.timestamp,
             topic,
-            measured.measurement
+            measured.measurement.value()
         );
     }
 
     Ok(())
+}
+
+fn generate_dataset() -> Vec<Vec<u8>> {
+    let mut bitstream: Vec<Vec<u8>> = Vec::new();
+
+    for row in crate::fine_offset::WH31_E_SAMPLES {
+        let mut row_vec: Vec<u8> = crate::fine_offset::PREAMBLE.to_vec();
+        row_vec.extend_from_slice(&row);
+        row_vec.extend_from_slice(&[0x00; 4]);
+        bitstream.push(row_vec);
+    }
+
+    for row in crate::fine_offset::WH31_E_RCC_SAMPLES {
+        let mut row_vec: Vec<u8> = crate::fine_offset::PREAMBLE.to_vec();
+        row_vec.extend_from_slice(&row);
+        row_vec.extend_from_slice(&[0x00; 4]);
+        bitstream.push(row_vec);
+    }
+
+    for row in crate::fine_offset::WH40_SAMPLES {
+        let mut row_vec: Vec<u8> = crate::fine_offset::PREAMBLE.to_vec();
+        row_vec.extend_from_slice(&row);
+        row_vec.extend_from_slice(&[0x00; 4]);
+        bitstream.push(row_vec);
+    }
+
+    for row in crate::fine_offset::WS68_SAMPLES {
+        let mut row_vec: Vec<u8> = crate::fine_offset::PREAMBLE.to_vec();
+        row_vec.extend_from_slice(&row);
+        row_vec.extend_from_slice(&[0x00; 4]);
+        bitstream.push(row_vec);
+    }
+
+    bitstream
 }
 
 fn main() -> Result<()> {
@@ -78,21 +114,22 @@ fn main() -> Result<()> {
 
     log::info!("{} version {}", crate_name!(), crate_version!());
 
+    /*
     let mqtt_session = paho_mqtt::Client::new("tcp://localhost:1883")?;
     let mqtt_opts = paho_mqtt::ConnectOptionsBuilder::new()
         .keep_alive_interval(std::time::Duration::from_secs(20))
         .clean_session(true)
         .finalize();
     mqtt_session.connect(mqtt_opts)?;
+    */
 
-    let bitstream: Vec<Vec<u8>> = Vec::new();
-
-    for measurement in bitstream
+    for measurement in generate_dataset()
         .iter()
         .filter_map(|r| r.as_slice().to_measurements().ok())
         .flatten()
     {
-        publish_measurement(&mqtt_session, measurement)?;
+        //publish_measurement(Some(&mqtt_session), measurement)?;
+        publish_measurement(None, measurement)?;
     }
     Ok(())
 }
