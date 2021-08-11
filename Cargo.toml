@@ -16,3 +16,4 @@ chrono = "0.4"
 bitvec = "0.22"
 crc-any = "2"
 uom = { version = "0.31", default-features = false, features = ["autoconvert", "f32", "si", "std", "u16", "u16"] }
+paho-mqtt = "0.9"
