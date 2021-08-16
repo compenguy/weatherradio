@@ -2,8 +2,18 @@ use anyhow::{Context, Result};
 use clap::{app_from_crate, crate_name, crate_version};
 use flexi_logger::{colored_default_format, detailed_format, Logger};
 
+use thiserror::Error;
+
 mod measurement;
 mod radio;
+
+#[derive(Error, Debug)]
+pub(crate) enum ApplicationError {
+    #[error("Missing argument")]
+    MissingArgument,
+    #[error("File not found: {0}")]
+    FileNotFound(std::path::PathBuf),
+}
 
 fn main() -> Result<()> {
     let matches = app_from_crate!("")
@@ -17,6 +27,15 @@ fn main() -> Result<()> {
                 .hidden(true)
                 .global(true)
                 .about("Enable debug-level output"),
+        )
+        .arg(
+            clap::Arg::new("rtl_433_bin")
+                .short('r')
+                .long("rtl-433")
+                .takes_value(true)
+                .value_name("PROGRAM")
+                .required(true)
+                .about("Path to the rtl_433 binary"),
         )
         .get_matches();
 
@@ -55,7 +74,12 @@ fn main() -> Result<()> {
     mqtt_session.connect(mqtt_opts)?;
     */
 
-    let weather = radio::Weather::<radio::RTL433>::new(std::env::current_dir()?)?;
+    let rtl_433_bin = matches.value_of("rtl_433_bin").map(|s| std::path::PathBuf::from(&s)).ok_or(ApplicationError::MissingArgument)?;
+    if !rtl_433_bin.is_file() {
+        return Err(ApplicationError::FileNotFound(rtl_433_bin).into());
+    }
+
+    let weather = radio::Weather::<radio::RTL433>::new(rtl_433_bin)?;
     for record in weather {
         for measurement in record.measurements {
             println!("{}", measurement);

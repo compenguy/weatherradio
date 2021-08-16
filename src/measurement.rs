@@ -80,6 +80,13 @@ impl TryFrom<serde_json::Value> for Record {
                     >(temp_f)));
                 }
             }
+            if let Some(serde_json::Value::Number(c)) = m.get("temperature_C") {
+                if let Some(temp_c) = c.as_f64().map(|c| c as f32) {
+                    measurements.push(Measurement::Temperature(ThermodynamicTemperature::new::<
+                        thermodynamic_temperature::degree_celsius,
+                    >(temp_c)));
+                }
+            }
             if let Some(serde_json::Value::Number(h)) = m.get("humidity") {
                 if let Some(hum) = h.as_u64().map(|h| h as u8) {
                     measurements.push(Measurement::RelativeHumidity(hum));

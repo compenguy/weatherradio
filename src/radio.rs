@@ -14,10 +14,10 @@ pub(crate) struct Weather<R> {
 impl Weather<RTL433> {
     pub(crate) fn new<P: AsRef<std::path::Path>>(binpath: P) -> Result<Self> {
         let mut child = std::process::Command::new(binpath.as_ref().as_os_str())
-            .arg("-M utc")
-            .arg("-F json")
-            .arg("-f 915M")
-            .arg("-R 113")
+            .arg("-Mutc")
+            .arg("-Fjson")
+            .arg("-f915M")
+            .arg("-R113")
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()?;
@@ -36,14 +36,18 @@ impl Weather<RTL433> {
         if let Some(stdout) = &mut self.stdout {
             let mut line = String::new();
             while line.is_empty() {
-                match stdout.read_line(&mut line) {
+                let result = stdout.read_line(&mut line);
+                log::trace!("Reading from rtl_433: {:?} => '{}'", result, line);
+                match result {
                     Ok(0) => return None,
                     Ok(_) => return Some(line),
                     Err(_) => (),
                 }
+                log::error!("Error reading from rtl_433: {:?}", result);
             }
             unreachable!();
         } else {
+            log::error!("No output pipe for rtl_433 process!");
             None
         }
     }
@@ -60,12 +64,12 @@ impl Iterator for Weather<RTL433> {
                 None => return None,
                 Some(l) => l,
             };
-            if let Some(record) = serde_json::from_str(&line)
-                .ok()
-                .and_then(|j: serde_json::Value| crate::measurement::Record::try_from(j).ok())
-            {
+            let json_result: std::result::Result<serde_json::Value, serde_json::Error> = serde_json::from_str(&line);
+            let record_result: Result<crate::measurement::Record> = json_result.map_err(|e| e.into()).and_then(|j| crate::measurement::Record::try_from(j).map_err(|e| e.into()));
+            if let Ok(record) = record_result {
                 return Some(record);
             }
+            log::error!("Error parsing rtl_433 output: {:?}", record_result);
         }
         /*
         if let Ok(Some(status)) = self.child.try_wait() {
