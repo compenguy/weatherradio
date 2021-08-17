@@ -64,8 +64,11 @@ impl Iterator for Weather<RTL433> {
                 None => return None,
                 Some(l) => l,
             };
-            let json_result: std::result::Result<serde_json::Value, serde_json::Error> = serde_json::from_str(&line);
-            let record_result: Result<crate::measurement::Record> = json_result.map_err(|e| e.into()).and_then(|j| crate::measurement::Record::try_from(j).map_err(|e| e.into()));
+            let json_result: std::result::Result<serde_json::Value, serde_json::Error> =
+                serde_json::from_str(&line);
+            let record_result: Result<crate::measurement::Record> = json_result
+                .map_err(|e| e.into())
+                .and_then(|j| crate::measurement::Record::try_from(j).map_err(|e| e.into()));
             if let Ok(record) = record_result {
                 return Some(record);
             }

@@ -121,42 +121,51 @@ pub(crate) enum Measurement {
     */
 }
 
-impl std::fmt::Display for Measurement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BatteryOk(b) => write!(f, "Battery Ok: {}", b),
-            Self::Temperature(c) => write!(
-                f,
-                "Temperature: {:.1} ",
-                c.into_format_args(thermodynamic_temperature::degree_celsius, Abbreviation)
-            ),
-            Self::RelativeHumidity(h) => write!(f, "Relative Humidity: {}%", h),
+impl Measurement {
+    pub(crate) fn name(&self) -> String {
+        let text = match self {
+            Self::BatteryOk(_) => "BatteryOk",
+            Self::Temperature(_) => "TemperatureF",
+            Self::RelativeHumidity(_) => "Humidity",
             /*
-            Self::BatteryLevelRaw(b) => write!(f, "Battery Level: {}", b),
-            Self::Clock(t) => write!(f, "Clock: {}", t),
-            Self::Rainfall(m) => write!(
-                f,
-                "Rainfall: {}",
-                m.into_format_args(length::millimeter, Abbreviation)
+            Self::BatteryLevelRaw(b) => "BatteryLevel",
+            Self::Clock(t) => "Clock",
+            Self::Rainfall(m) => "Rainfall",
+            Self::Lux(l) => "Lux",
+            Self::WindSpeed(w) => "WindSpeed",
+            Self::WindGust(w) => "WindGust",
+            Self::WindDirection(w) => "WindDirection",
+            Self::None => "None",
+            */
+        };
+
+        text.to_owned()
+    }
+
+    pub(crate) fn value(&self) -> String {
+        match self {
+            Self::BatteryOk(b) => b.to_string(),
+            Self::Temperature(t) => format!(
+                "{:.1}",
+                t.into_format_args(thermodynamic_temperature::degree_fahrenheit, Abbreviation)
             ),
-            Self::Lux(l) => write!(f, "Lux: {}", l),
-            Self::WindSpeed(w) => write!(
-                f,
-                "Wind speed: {}",
-                w.into_format_args(velocity::kilometer_per_hour, Abbreviation)
-            ),
-            Self::WindGust(w) => write!(
-                f,
-                "Wind gust: {}",
-                w.into_format_args(velocity::kilometer_per_hour, Abbreviation)
-            ),
-            Self::WindDirection(w) => write!(
-                f,
-                "Wind direction: {}",
-                w.into_format_args(angle::degree, Abbreviation)
-            ),
-            Self::None => write!(f, "None"),
+            Self::RelativeHumidity(h) => format!("{}%", h),
+            /*
+            Self::BatteryLevelRaw(b) => b.to_string(),
+            Self::Clock(t) => t.to_string(),
+            Self::Rainfall(m) => m.into_format_args(length::millimeter, Abbreviation).to_string(),
+            Self::Lux(l) => l.to_string(),
+            Self::WindSpeed(w) => w.into_format_args(velocity::kilometer_per_hour, Abbreviation).to_string(),
+            Self::WindGust(w) => w.into_format_args(velocity::kilometer_per_hour, Abbreviation).to_string(),
+            Self::WindDirection(w) => w.into_format_args(angle::degree, Abbreviation).to_string(),
+            Self::None => String::new(),
             */
         }
+    }
+}
+
+impl std::fmt::Display for Measurement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.name(), self.value())
     }
 }
