@@ -9,7 +9,7 @@ license = "Apache-2.0"
 [dependencies]
 thiserror = "1"
 anyhow = "1"
-clap = { version = "3.0.0-beta.2", default-features = false, features = ["color", "std", "cargo"] }
+clap = { version = "3.0.0-beta.4", default-features = false, features = ["color", "std", "cargo"] }
 log = { version = "0.4", default-features = true, features = ["std"] }
 flexi_logger = { version = "0.18", default-features = false, features = ["colors"] }
 chrono = "0.4"
