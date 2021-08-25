@@ -14,7 +14,7 @@ log = { version = "0.4", default-features = true, features = ["std"] }
 flexi_logger = { version = "0.18", default-features = false, features = ["colors"] }
 chrono = "0.4"
 crc-any = "2"
-uom = { version = "0.31", default-features = false, features = ["autoconvert", "f32", "si", "std", "u16", "u16"] }
+uom = { version = "0.31", default-features = false, features = ["autoconvert", "f32", "si", "std", "u16", "u32"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 paho-mqtt = "0.9"

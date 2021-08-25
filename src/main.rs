@@ -2,7 +2,8 @@ use anyhow::{Context, Result};
 use clap::{app_from_crate, crate_name, crate_version};
 use flexi_logger::{colored_default_format, detailed_format, Logger};
 
-mod measurement;
+mod ambientweather;
+mod idm;
 mod radio;
 
 fn main() -> Result<()> {
@@ -123,25 +124,15 @@ fn main() -> Result<()> {
         .value_of("rtl_433_bin")
         .map(|s| std::path::PathBuf::from(&s))
         .expect("Missing requirement argument --rtl-433");
-    let weather = radio::Weather::<radio::RTL433>::new(rtl_433_bin)?;
+    let weather = radio::Sensor::<radio::RTL433>::new(rtl_433_bin)?;
     for record in weather {
-        let mut recordmeta = String::from("weatherradio");
-        match (record.device_id, record.channel) {
-            (Some(dev_id), Some(chan)) => recordmeta.push_str(&format!("/{}/{}", dev_id, chan)),
-            (Some(dev_id), None) => recordmeta.push_str(&format!("/{}", dev_id)),
-            (None, Some(chan)) => recordmeta.push_str(&format!("/{}", chan)),
-            (None, None) => (),
-        }
+        let recordmeta = format!("weatherradio/{}", record.sensor_id);
         log::trace!("[RECORD] {} {}", record.timestamp, recordmeta);
         for measurement in record.measurements {
             log::info!("[{}]:{} {}", record.timestamp, recordmeta, measurement);
             if let Some(ref session) = session_opt {
                 let topic = format!("{}/{}", recordmeta, measurement.name());
-                let msg = paho_mqtt::Message::new(
-                    &topic,
-                    measurement.value(),
-                    0,
-                );
+                let msg = paho_mqtt::Message::new(&topic, measurement.value(), 0);
                 session.publish(msg)?;
                 log::info!("mqtt <== {}({})", topic, measurement.value());
             }
