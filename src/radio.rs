@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::io::BufRead;
 
 use uom::fmt::DisplayStyle::Abbreviation;
@@ -21,6 +21,7 @@ pub(crate) struct Sensor<R> {
 impl Sensor<RTL433> {
     pub(crate) fn new<P: AsRef<std::path::Path>>(binpath: P) -> Result<Self> {
         let mut child = std::process::Command::new(binpath.as_ref().as_os_str())
+            .arg("-q")
             .arg("-Mlevel")
             .arg("-Mprotocol")
             .arg("-Mutc")
@@ -31,7 +32,14 @@ impl Sensor<RTL433> {
             //.arg("-R161")
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
-            .spawn()?;
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .with_context(|| {
+                format!(
+                    "Unable to locate rtl_433 binary at the configured location ({})",
+                    binpath.as_ref().display()
+                )
+            })?;
 
         let stdout = child.stdout.take().map(std::io::BufReader::new);
         let stderr = child.stderr.take().map(std::io::BufReader::new);
