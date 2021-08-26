@@ -119,4 +119,15 @@ impl Config {
 
         Ok(())
     }
+
+    pub(crate) fn get_log_level(&self) -> log::LevelFilter {
+        match self.output_level.unwrap_or(1) {
+            0 => log::LevelFilter::Off,
+            1 => log::LevelFilter::Error,
+            2 => log::LevelFilter::Warn,
+            3 => log::LevelFilter::Info,
+            4 => log::LevelFilter::Debug,
+            _ => log::LevelFilter::Trace,
+        }
+    }
 }

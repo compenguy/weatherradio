@@ -19,27 +19,35 @@ pub(crate) struct Sensor<R> {
 }
 
 impl Sensor<RTL433> {
-    pub(crate) fn new<P: AsRef<std::path::Path>>(binpath: P) -> Result<Self> {
-        let mut child = std::process::Command::new(binpath.as_ref().as_os_str())
-            .arg("-q")
-            .arg("-Mlevel")
-            .arg("-Mprotocol")
-            .arg("-Mutc")
+    pub(crate) fn new(conf: &crate::config::Config) -> Result<Self> {
+        let binpath = conf
+            .rtl_433
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Path to rtl_433 binary not set."))?;
+        let mut proc = std::process::Command::new(binpath.as_os_str());
+        proc.arg("-Mutc")
             .arg("-Fjson")
             .arg("-f915M")
-            //.arg("-R113")
-            //.arg("-R160")
-            //.arg("-R161")
+            .arg("-R113")
             .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-            .with_context(|| {
-                format!(
-                    "Unable to locate rtl_433 binary at the configured location ({})",
-                    binpath.as_ref().display()
-                )
-            })?;
+            .stdout(std::process::Stdio::piped());
+
+        // Swallow all of rtl_433's stderr output, unless we're logging at debug or higher
+        if conf.get_log_level() < log::LevelFilter::Debug {
+            proc.stderr(std::process::Stdio::piped());
+        }
+
+        // When logging at trace level, add signal level and protocol information to the
+        // captured information
+        if conf.get_log_level() >= log::LevelFilter::Trace {
+            proc.arg("-Mlevel").arg("-Mprotocol");
+        }
+        let mut child = proc.spawn().with_context(|| {
+            format!(
+                "Unable to launch rtl_433 binary at the configured location ({})",
+                binpath.display()
+            )
+        })?;
 
         let stdout = child.stdout.take().map(std::io::BufReader::new);
         let stderr = child.stderr.take().map(std::io::BufReader::new);
@@ -108,7 +116,7 @@ impl Iterator for Sensor<RTL433> {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Measurement {
     TotalEnergyConsumption(Energy),
     DifferentialEnergyConsumption(Energy, Time),
@@ -187,7 +195,7 @@ impl Measurement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Record {
     pub(crate) timestamp: chrono::DateTime<chrono::Local>,
     pub(crate) sensor_id: String,

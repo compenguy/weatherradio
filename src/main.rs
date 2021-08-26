@@ -15,8 +15,6 @@ mod radio;
 pub(crate) enum AppError {
     #[error("Application configuration directory not found")]
     AppDirNotFound,
-    #[error("Application missing configuration option for rtl_433 path")]
-    MissingArgumentRtl433,
 }
 
 fn main() -> Result<()> {
@@ -110,14 +108,7 @@ fn main() -> Result<()> {
     };
     conf.update_from_args(&matches)?;
 
-    let crate_log_level = match conf.output_level.unwrap_or(1) {
-        0 => log::LevelFilter::Off,
-        1 => log::LevelFilter::Error,
-        2 => log::LevelFilter::Warn,
-        3 => log::LevelFilter::Info,
-        4 => log::LevelFilter::Debug,
-        _ => log::LevelFilter::Trace,
-    };
+    let crate_log_level = conf.get_log_level();
     let general_log_level = match crate_log_level {
         log::LevelFilter::Trace | log::LevelFilter::Debug => log::LevelFilter::Error,
         _ => log::LevelFilter::Off,
@@ -178,15 +169,17 @@ fn main() -> Result<()> {
     };
 
     log::debug!("Opening rtl_433...");
-    let rtl_433_bin = conf
-        .rtl_433
-        .as_ref()
-        .ok_or(AppError::MissingArgumentRtl433)?;
-    let weather = radio::Sensor::<radio::RTL433>::new(rtl_433_bin)?;
+    let weather = radio::Sensor::<radio::RTL433>::new(&conf)?;
+    // Dedup records
+    let mut last: Option<crate::radio::Record> = None;
     for record in weather.filter(|r| !conf.sensor_ignores.contains(&r.sensor_id)) {
+        if last.as_ref().map(|l| l == &record).unwrap_or(false) {
+            log::trace!("Duplicate record.");
+            continue;
+        }
         let recordmeta = format!("weatherradio/{}", record.sensor_id);
         log::trace!("[RECORD] {} {}", record.timestamp, recordmeta);
-        for measurement in record.measurements {
+        for measurement in &record.measurements {
             log::info!("[{}]:{} {}", record.timestamp, recordmeta, measurement);
             if let Some(ref session) = session_opt {
                 let topic = format!("{}/{}", recordmeta, measurement.name());
@@ -195,6 +188,7 @@ fn main() -> Result<()> {
                 log::info!("mqtt <== {}({})", topic, measurement.value());
             }
         }
+        last = Some(record);
     }
     Ok(())
 }
