@@ -19,3 +19,5 @@ uom = { version = "0.31", default-features = false, features = ["autoconvert", "
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 paho-mqtt = "0.9"
+keyring = "0.10"
+rpassword = "5"

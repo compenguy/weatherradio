@@ -69,15 +69,17 @@ fn main() -> Result<()> {
                 .value_name("USER")
                 .about("Account user for connecting to the mqtt broker"),
         )
-        // TODO: this should be change to not accept an arg and securely query password on command
-        // line and store in secret storage
         .arg(
-            clap::Arg::new("mqtt_password")
-                .short('p')
-                .long("mqtt-password")
-                .takes_value(true)
-                .value_name("PASSWORD")
-                .about("Account password for connecting to the mqtt broker"),
+            clap::Arg::new("mqtt_credentials_keyring")
+                .short('k')
+                .long("mqtt-credentials-keyring")
+                .about("mqtt broker account password stored on session keyring, prompt on startup if no password set"),
+        )
+        .arg(
+            clap::Arg::new("mqtt_credentials_config")
+                .short('k')
+                .long("mqtt-credentials-config")
+                .about("mqtt broker account password stored in config file, prompt on startup if no password set"),
         )
         .arg(
             clap::Arg::new("ignore")
@@ -131,8 +133,23 @@ fn main() -> Result<()> {
     log::debug!("mqtt: {:?}", conf.mqtt);
     log::debug!("sensors to ignore: {:?}", conf.sensor_ignores);
 
+    if let Some(ref mut mqtt) = conf.mqtt {
+        if let Some(cred) = &mqtt.credentials {
+            if let Ok(None) = cred.password() {
+                mqtt.credentials = Some(
+                    cred.update_password(
+                        rpassword::prompt_password_stdout(&format!(
+                            "mqtt password for {}",
+                            cred.username().unwrap_or_default()
+                        ))?
+                        .as_str(),
+                    )?,
+                )
+            }
+        }
+    }
+
     if matches.is_present("generate_config") {
-        // TODO: create config dir
         std::fs::create_dir_all(json_config_path.parent().expect("Configuration file directory could not be determined from the provided configuration file path"))?;
         let mut config_file = std::io::BufWriter::new(
             std::fs::File::create(&json_config_path).with_context(|| {
@@ -155,11 +172,11 @@ fn main() -> Result<()> {
         mqtt_opts
             .keep_alive_interval(std::time::Duration::from_secs(20))
             .clean_session(true);
-        if let Some(username) = &mqtt.user {
-            mqtt_opts.user_name(username);
-        }
-        if let Some(password) = &mqtt.password {
-            mqtt_opts.password(password);
+        if let Some(cred) = &mqtt.credentials {
+            if let Some((u, p)) = cred.get() {
+                mqtt_opts.user_name(u);
+                mqtt_opts.password(p);
+            }
         }
         mqtt_session.connect(mqtt_opts.finalize())?;
         log::info!("Connected to mqtt broker {}", mqtt.broker);
