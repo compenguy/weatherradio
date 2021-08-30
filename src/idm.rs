@@ -102,6 +102,7 @@ pub(crate) fn try_parse(json: &serde_json::Value) -> Result<crate::radio::Record
         Ok(crate::radio::Record {
             timestamp,
             sensor_id,
+            record_json: json.clone(),
             measurements,
         })
     } else {

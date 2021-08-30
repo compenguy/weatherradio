@@ -77,7 +77,7 @@ fn main() -> Result<()> {
         )
         .arg(
             clap::Arg::new("mqtt_credentials_config")
-                .short('k')
+                .short('f')
                 .long("mqtt-credentials-config")
                 .about("mqtt broker account password stored in config file, prompt on startup if no password set"),
         )
@@ -139,7 +139,7 @@ fn main() -> Result<()> {
                 mqtt.credentials = Some(
                     cred.update_password(
                         rpassword::prompt_password_stdout(&format!(
-                            "mqtt password for {}",
+                            "mqtt password for {}: ",
                             cred.username().unwrap_or_default()
                         ))?
                         .as_str(),
@@ -167,7 +167,9 @@ fn main() -> Result<()> {
 
     let session_opt = if let Some(mqtt) = &conf.mqtt {
         log::debug!("Establishing connection to mqtt broker {}", mqtt.broker);
-        let mqtt_session = paho_mqtt::Client::new(format!("tcp://{}", mqtt.broker))?;
+        let broker_uri = format!("tcp://{}", mqtt.broker);
+        let mqtt_session = paho_mqtt::Client::new(broker_uri.as_str())
+            .with_context(|| format!("Failed to establish connection to broker {}", broker_uri))?;
         let mut mqtt_opts = paho_mqtt::ConnectOptionsBuilder::new();
         mqtt_opts
             .keep_alive_interval(std::time::Duration::from_secs(20))
@@ -194,17 +196,24 @@ fn main() -> Result<()> {
             log::trace!("Duplicate record.");
             continue;
         }
-        let recordmeta = format!("weatherradio/{}", record.sensor_id);
-        log::trace!("[RECORD] {} {}", record.timestamp, recordmeta);
+        log::trace!("[RECORD] {} {}", record.timestamp, record.sensor_id);
+        if let Some(ref session) = session_opt {
+            let msg =
+                paho_mqtt::Message::new(&record.sensor_id, serde_json::to_vec(&record.record_json)?, 2);
+            session.publish(msg)?;
+            log::info!("mqtt <== {}({})", record.sensor_id, record.record_json);
+        }
+        /*
         for measurement in &record.measurements {
-            log::info!("[{}]:{} {}", record.timestamp, recordmeta, measurement);
+            log::info!("[{}]:{} {}", record.timestamp, record.sensor_id, measurement);
             if let Some(ref session) = session_opt {
-                let topic = format!("{}/{}", recordmeta, measurement.name());
-                let msg = paho_mqtt::Message::new(&topic, measurement.value(), 0);
+                let topic = format!("{}/{}", record.sensor_id, measurement.name());
+                let msg = paho_mqtt::Message::new(&topic, measurement.value(), 2);
                 session.publish(msg)?;
                 log::info!("mqtt <== {}({})", topic, measurement.value());
             }
         }
+        */
         last = Some(record);
     }
     Ok(())

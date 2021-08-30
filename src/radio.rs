@@ -29,6 +29,7 @@ impl Sensor<RTL433> {
             .arg("-Fjson")
             .arg("-f915M")
             .arg("-R113")
+            .arg("-Ccustomary")
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped());
 
@@ -199,6 +200,7 @@ impl Measurement {
 pub(crate) struct Record {
     pub(crate) timestamp: chrono::DateTime<chrono::Local>,
     pub(crate) sensor_id: String,
+    pub(crate) record_json: serde_json::value::Value,
     pub(crate) measurements: Vec<Measurement>,
 }
 

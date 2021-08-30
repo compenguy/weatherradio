@@ -40,11 +40,18 @@ pub(crate) fn try_parse(json: &serde_json::Value) -> Result<crate::radio::Record
         } else {
             None
         };
-        let sensor_id = match (device_id, channel) {
-            (Some(id), Some(channel)) => format!("{}/{}", id, channel),
-            (None, Some(channel)) => format!("{}", channel),
-            (Some(id), None) => format!("{}", id),
-            (None, None) => return Err(MeasurementError::MissingSensorId.into()),
+        let model = if let Some(serde_json::Value::String(model)) = m.get("model") {
+            Some(model)
+        } else {
+            None
+        };
+        let sensor_id = match (model, device_id, channel) {
+            (Some(model), _, Some(channel)) => format!("{}/{}", model, channel),
+            (None, Some(id), Some(channel)) => format!("{}/{}", id, channel),
+            (Some(model), Some(id), None) => format!("{}/{}", model, id),
+            (None, None, Some(channel)) => format!("{}", channel),
+            (None, Some(id), None) => format!("{}", id),
+            (_, None, None) => return Err(MeasurementError::MissingSensorId.into()),
         };
         let mut measurements = Vec::new();
         if let Some(serde_json::Value::Number(b)) = m.get("battery_ok") {
@@ -78,6 +85,7 @@ pub(crate) fn try_parse(json: &serde_json::Value) -> Result<crate::radio::Record
         Ok(crate::radio::Record {
             timestamp,
             sensor_id,
+            record_json: json.clone(),
             measurements,
         })
     } else {
