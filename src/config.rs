@@ -143,7 +143,7 @@ impl Credentials {
 
 impl Default for Credentials {
     fn default() -> Self {
-        Credentials::Keyring(String::new())
+        Credentials::ConfigFile(String::new(), String::new())
     }
 }
 
