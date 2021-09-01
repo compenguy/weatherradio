@@ -5,7 +5,6 @@ services:
     build: .
     restart: unless-stopped
     devices:
-      - "/dev/swradio0:/dev/swradio0"
       - "/dev/bus/usb:/dev/bus/usb"
     volumes:
       - /etc/localtime:/etc/localtime:ro
