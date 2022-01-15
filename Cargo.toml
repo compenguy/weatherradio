@@ -9,15 +9,15 @@ license = "Apache-2.0"
 [dependencies]
 thiserror = "1"
 anyhow = "1"
-clap = { version = "3.0.0-beta.4", default-features = false, features = ["color", "std", "cargo"] }
+clap = { version = "3", default-features = false, features = ["color", "std", "cargo"] }
 log = { version = "0.4", default-features = true, features = ["std"] }
-flexi_logger = { version = "0.18", default-features = false, features = ["colors"] }
-dirs = "3"
+flexi_logger = { version = "0.22", default-features = false, features = ["colors"] }
+dirs = "4"
 chrono = "0.4"
 crc-any = "2"
-uom = { version = "0.31", default-features = false, features = ["autoconvert", "f32", "si", "std", "u16", "u32"] }
+uom = { version = "0.32", default-features = false, features = ["autoconvert", "f32", "si", "std", "u16", "u32"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 paho-mqtt = "0.9"
-keyring = "0.10"
+keyring = "1"
 rpassword = "5"

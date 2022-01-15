@@ -24,24 +24,24 @@ fn main() -> Result<()> {
         .join(crate_name!())
         .join("config.json");
 
+    let gen_cfg_help = format!("Generates a json-formatted configuration file at {}, populated by the current invocation arguments, and defaults where arguments were omitted, and then exits the program", json_config_path.display());
+
     let matches = app_from_crate!("")
-        .setting(clap::AppSettings::ColorAuto)
-        .setting(clap::AppSettings::ColoredHelp)
         .arg(
             clap::Arg::new("quiet")
                 .short('q')
                 .long("quiet")
                 .global(true)
-                .about("Suppress all application output"),
+                .help("Suppress all application output"),
         )
         .arg(
             clap::Arg::new("debug")
                 .short('g')
                 .long("debug")
                 .multiple_occurrences(true)
-                .hidden(true)
+                .hide(true)
                 .global(true)
-                .about("Enable debug-level output"),
+                .help("Enable debug-level output"),
         )
         .arg(
             clap::Arg::new("rtl_433_bin")
@@ -49,7 +49,7 @@ fn main() -> Result<()> {
                 .long("rtl-433")
                 .takes_value(true)
                 .value_name("PROGRAM")
-                .about("Path to the rtl_433 binary"),
+                .help("Path to the rtl_433 binary"),
         )
         .arg(
             clap::Arg::new("mqtt_broker")
@@ -57,7 +57,7 @@ fn main() -> Result<()> {
                 .long("mqtt-broker")
                 .takes_value(true)
                 .value_name("BROKER")
-                .about(
+                .help(
                     "Network identifier of the mqtt broker to publish to, e.g. 'localhost:1883'",
                 ),
         )
@@ -67,19 +67,19 @@ fn main() -> Result<()> {
                 .long("mqtt-user")
                 .takes_value(true)
                 .value_name("USER")
-                .about("Account user for connecting to the mqtt broker"),
+                .help("Account user for connecting to the mqtt broker"),
         )
         .arg(
             clap::Arg::new("mqtt_credentials_keyring")
                 .short('k')
                 .long("mqtt-credentials-keyring")
-                .about("mqtt broker account password stored on session keyring, prompt on startup if no password set"),
+                .help("mqtt broker account password stored on session keyring, prompt on startup if no password set"),
         )
         .arg(
             clap::Arg::new("mqtt_credentials_config")
                 .short('f')
                 .long("mqtt-credentials-config")
-                .about("mqtt broker account password stored in config file, prompt on startup if no password set"),
+                .help("mqtt broker account password stored in config file, prompt on startup if no password set"),
         )
         .arg(
             clap::Arg::new("ignore")
@@ -88,13 +88,13 @@ fn main() -> Result<()> {
                 .multiple_occurrences(true)
                 .takes_value(true)
                 .value_name("SENSOR_ID")
-                .about("Ignore the specified sensor topic; can be repeated"),
+                .help("Ignore the specified sensor topic; can be repeated"),
         )
         .arg(
             clap::Arg::new("generate_config")
                 .short('G')
                 .long("generate-config")
-                .about(&format!("Generates a json-formatted configuration file at {}, populated by the current invocation arguments, and defaults where arguments were omitted, and then exits the program", json_config_path.display())),
+                .help(gen_cfg_help.as_str())
         )
         .get_matches();
 
@@ -198,8 +198,11 @@ fn main() -> Result<()> {
         }
         log::trace!("[RECORD] {} {}", record.timestamp, record.sensor_id);
         if let Some(ref session) = session_opt {
-            let msg =
-                paho_mqtt::Message::new(&record.sensor_id, serde_json::to_vec(&record.record_json)?, 2);
+            let msg = paho_mqtt::Message::new(
+                &record.sensor_id,
+                serde_json::to_vec(&record.record_json)?,
+                2,
+            );
             session.publish(msg)?;
             log::info!("mqtt <== {}({})", record.sensor_id, record.record_json);
         }

@@ -24,7 +24,7 @@ RUN cd /usr/local/src \
     && make install \
     && cd ../.. && rm -rf rtl_433*
 
-FROM rust:1.54.0-buster as weatherradio_builder
+FROM rust:1.58.0-buster as weatherradio_builder
 
 RUN apt-get update \
     && apt-get install -y \
