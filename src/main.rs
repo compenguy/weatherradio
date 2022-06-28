@@ -138,7 +138,7 @@ fn main() -> Result<()> {
             if let Ok(None) = cred.password() {
                 mqtt.credentials = Some(
                     cred.update_password(
-                        rpassword::prompt_password_stdout(&format!(
+                        rpassword::prompt_password(&format!(
                             "mqtt password for {}: ",
                             cred.username().unwrap_or_default()
                         ))?
