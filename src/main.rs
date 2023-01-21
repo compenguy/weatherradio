@@ -3,7 +3,7 @@ use std::io::Write;
 
 use anyhow::{Context, Result};
 use clap::{app_from_crate, crate_name, crate_version};
-use flexi_logger::{colored_default_format, detailed_format, Logger};
+use flexi_logger::{default_format, detailed_format, Logger};
 use thiserror::Error;
 
 mod ambientweather;
@@ -123,7 +123,7 @@ fn main() -> Result<()> {
     );
     Logger::try_with_str(&spec)?
         .format(detailed_format)
-        .format_for_stderr(colored_default_format)
+        .format_for_stderr(default_format)
         .start()
         .with_context(|| "Failed to start FlexiLogger logging backend")?;
 
