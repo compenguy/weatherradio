@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM debian:bullseye-slim as rtl_433_builder
+FROM debian:bookworm-slim as rtl_433_builder
 
 RUN apt-get update \
     && apt-get install -y \
@@ -15,16 +15,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cd /usr/local/src \
-    && wget https://github.com/merbanan/rtl_433/archive/refs/tags/22.11.tar.gz \
-    && tar xvf 22.11.tar.gz \
-    && cd rtl_433-22.11 \
+    && wget https://github.com/merbanan/rtl_433/archive/refs/tags/23.11.tar.gz \
+    && tar xvf 23.11.tar.gz \
+    && cd rtl_433-23.11 \
     && mkdir build \
     && cd build \
     && cmake .. \
     && make install \
     && cd ../.. && rm -rf rtl_433*
 
-FROM rust:1.66.1-bullseye as weatherradio_builder
+FROM rust:1.75-slim-bookworm as weatherradio_builder
 
 RUN apt-get update \
     && apt-get install -y \
@@ -42,11 +42,11 @@ COPY . .
 
 RUN cargo install --path .
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update \
     && apt-get install -y \
-        libssl1.1 \
+        libssl3 \
         libdbus-1-3 \
         rtl-sdr \
     && rm -rf /var/lib/apt/lists/*

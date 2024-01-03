@@ -9,3 +9,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config:/root/.config/weatherradio
+    logging:
+      options:
+        max-size: "1m"
+        max-file: "5"
