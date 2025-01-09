@@ -116,7 +116,7 @@ impl Credentials {
 
     fn get_from_keyring(username: &str) -> Result<Option<String>> {
         let service = String::from(crate_name!());
-        let keyring = keyring::Entry::new(&service, username);
+        let keyring = keyring::Entry::new(&service, username)?;
         match keyring.get_password() {
             Ok(p) => Ok(Some(p)),
             Err(keyring::error::Error::NoEntry) => Ok(None),
@@ -128,7 +128,7 @@ impl Credentials {
 
     fn set_on_keyring(username: &str, password: &str) -> Result<()> {
         let service = String::from(crate_name!());
-        let keyring = keyring::Entry::new(&service, username);
+        let keyring = keyring::Entry::new(&service, username)?;
         keyring
             .set_password(password)
             .map_err(|e| ConfigError::KeyringError(e.to_string()))
@@ -191,23 +191,12 @@ impl MqttConfig {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub(crate) struct Config {
     pub(crate) output_level: Option<u8>,
     pub(crate) rtl_433: Option<std::path::PathBuf>,
     pub(crate) mqtt: Option<MqttConfig>,
     pub(crate) sensor_ignores: HashSet<String>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            output_level: None,
-            rtl_433: None,
-            mqtt: None,
-            sensor_ignores: HashSet::new(),
-        }
-    }
 }
 
 impl TryFrom<&std::path::Path> for Config {
@@ -269,7 +258,7 @@ impl Config {
                 new_cred = new_cred.update_username(user);
             }
             mqtt.credentials.replace(new_cred);
-        } else if arg_matches.is_present("mqtt-user") || arg_matches.is_present("mqtt-password") {
+        } else if arg_matches.is_present("mqtt_user") || arg_matches.is_present("mqtt_password") {
             return Err(ConfigError::MqttMissingBroker.into());
         }
 

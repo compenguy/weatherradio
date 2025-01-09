@@ -1,4 +1,4 @@
-use chrono::TimeZone;
+use chrono::{Local, TimeZone};
 
 use anyhow::Result;
 use thiserror::Error;
@@ -67,11 +67,11 @@ pub(crate) fn try_parse(json: &serde_json::Value) -> Result<crate::radio::Record
     if let serde_json::Value::Object(m) = json {
         let timestamp: chrono::DateTime<chrono::Local> =
             if let Some(serde_json::Value::String(time)) = m.get("time") {
-                //let naive_time = chrono::NaiveDateTime::parse_from_str(time, "%Y-%m-%d %H:%M:%S").map_err(|e| e.into())?;
-                //naive_time.into()
-                chrono::Local
-                    .datetime_from_str(time, "%Y-%m-%d %H:%M:%S")
-                    .map_err(MeasurementError::from)?
+                let from = chrono::NaiveDateTime::parse_from_str(time, "%Y-%m-%d %H:%M:%S")?;
+                Local
+                    .from_local_datetime(&from)
+                    .earliest()
+                    .ok_or(anyhow::anyhow!("Invalid datetime string conversion"))?
             } else {
                 return Err(MeasurementError::MissingTimestamp.into());
             };

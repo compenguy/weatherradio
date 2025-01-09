@@ -168,8 +168,7 @@ impl Measurement {
                 .to_string(),
             Self::DifferentialEnergyConsumption(e, t) => format!(
                 "{} over the last {:.1}",
-                e.into_format_args(energy::kilowatt_hour, Abbreviation)
-                    .to_string(),
+                e.into_format_args(energy::kilowatt_hour, Abbreviation),
                 t.into_format_args(time::hour, Abbreviation)
             ),
             Self::BatteryOk(b) => b.to_string(),
