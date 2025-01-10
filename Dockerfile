@@ -24,7 +24,7 @@ RUN cd /usr/local/src \
     && make install \
     && cd ../.. && rm -rf rtl_433*
 
-FROM rust:1.75-slim-bookworm as weatherradio_builder
+FROM rust:1.80-slim-bookworm as weatherradio_builder
 
 RUN apt-get update \
     && apt-get install -y \
