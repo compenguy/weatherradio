@@ -15,16 +15,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cd /usr/local/src \
-    && wget https://github.com/merbanan/rtl_433/archive/refs/tags/23.11.tar.gz \
-    && tar xvf 23.11.tar.gz \
-    && cd rtl_433-23.11 \
+    && wget https://github.com/merbanan/rtl_433/archive/refs/tags/25.12.tar.gz \
+    && tar xvf 25.12.tar.gz \
+    && cd rtl_433-25.12 \
     && mkdir build \
     && cd build \
     && cmake .. \
     && make install \
     && cd ../.. && rm -rf rtl_433*
 
-FROM rust:1.80-slim-bookworm as weatherradio_builder
+FROM rust:1.97-slim-bookworm as weatherradio_builder
 
 RUN apt-get update \
     && apt-get install -y \
@@ -55,4 +55,4 @@ COPY --from=rtl_433_builder /usr/local/bin/rtl_433 /usr/local/bin/
 COPY --from=weatherradio_builder /usr/local/cargo/bin/weatherradio /usr/local/bin/
 RUN mkdir -p /root/.config/weatherradio
 
-CMD ["weatherradio"]
+CMD ["weatherradio", "-ggggg"]
