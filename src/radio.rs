@@ -24,19 +24,47 @@ impl Sensor<RTL433> {
             .rtl_433
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Path to rtl_433 binary not set."))?;
+        let radio = &conf.radio;
         let mut proc = std::process::Command::new(binpath.as_os_str());
+        // Route rtl_433 25.x's own log output to stderr; -Flog's default target
+        // is stdout, which would collide with the -Fjson stream we parse below.
+        // Without any -Flog, rtl_433 25.x suppresses errors like "No supported
+        // devices found" and exits silently, which is very unhelpful.
         proc.arg("-Mutc")
             .arg("-Fjson")
-            .arg("-f915M")
-            .arg("-R113")
+            .arg("-Flog:/dev/stderr")
             .arg("-Ccustomary")
-            .stdin(std::process::Stdio::piped())
+            .arg(format!("-f{}", radio.frequency));
+
+        if let Some(gain) = &radio.gain {
+            proc.arg(format!("-g{}", gain));
+        }
+        if let Some(ppm) = radio.ppm {
+            proc.arg(format!("-p{}", ppm));
+        }
+        if let Some(sr) = &radio.sample_rate {
+            proc.arg(format!("-s{}", sr));
+        }
+        if let Some(demod) = &radio.demod {
+            proc.arg(format!("-Y{}", demod));
+        }
+        if let Some(level) = radio.level {
+            proc.arg(format!("-Ylevel={}", level));
+        }
+        for p in &radio.protocols {
+            proc.arg(format!("-R{}", p));
+        }
+        for extra in &radio.extra_args {
+            proc.arg(extra);
+        }
+
+        proc.stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped());
 
-        // Swallow all of rtl_433's stderr output, unless we're logging at debug or higher
-        if conf.get_log_level() < log::LevelFilter::Debug {
-            proc.stderr(std::process::Stdio::piped());
-        }
+        // Always inherit rtl_433's stderr so its own log messages (device
+        // detection, errors, warnings) reach the user. Previously stderr was
+        // silently dropped except at debug+, which meant failures like a
+        // missing/hung dongle looked like the program was doing nothing.
 
         // When logging at trace level, add signal level and protocol information to the
         // captured information
@@ -97,8 +125,15 @@ impl Iterator for Sensor<RTL433> {
             let json = match json_result {
                 Ok(json) => json,
                 Err(e) => {
-                    log::error!("Error parsing rtl_433 output: {:?}", e);
-                    return None;
+                    // Don't bail on a single garbage line - rtl_433 or its
+                    // underlying libraries can emit stray non-JSON output
+                    // to stdout in some conditions. Log and skip.
+                    log::warn!(
+                        "Skipping unparseable rtl_433 output: {:?}: {}",
+                        e,
+                        line.trim_end()
+                    );
+                    continue;
                 }
             };
             if let Ok(record) = crate::ambientweather::try_parse(&json) {

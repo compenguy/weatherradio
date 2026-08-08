@@ -96,6 +96,67 @@ fn main() -> Result<()> {
                 .long("generate-config")
                 .help(gen_cfg_help.as_str())
         )
+        .arg(
+            clap::Arg::new("frequency")
+                .long("frequency")
+                .takes_value(true)
+                .value_name("FREQ")
+                .help("rtl_433 tuner center frequency (e.g. '915M', '433.92M')"),
+        )
+        .arg(
+            clap::Arg::new("gain")
+                .long("gain")
+                .takes_value(true)
+                .value_name("GAIN")
+                .help("rtl_433 tuner gain in dB, or 'auto' (default: auto)"),
+        )
+        .arg(
+            clap::Arg::new("ppm")
+                .long("ppm")
+                .takes_value(true)
+                .value_name("PPM")
+                .allow_hyphen_values(true)
+                .help("Tuner frequency correction in ppm (per-dongle calibration)"),
+        )
+        .arg(
+            clap::Arg::new("sample_rate")
+                .long("sample-rate")
+                .takes_value(true)
+                .value_name("RATE")
+                .help("rtl_433 sample rate (e.g. '250k'); usually only useful with --demod classic"),
+        )
+        .arg(
+            clap::Arg::new("demod")
+                .long("demod")
+                .takes_value(true)
+                .value_name("MODE")
+                .help("rtl_433 demodulator mode: auto, classic, minmax, magest, ampest"),
+        )
+        .arg(
+            clap::Arg::new("level")
+                .long("level")
+                .takes_value(true)
+                .value_name("DB")
+                .allow_hyphen_values(true)
+                .help("Minimum trigger level in dB (rtl_433 -Y level=<DB>)"),
+        )
+        .arg(
+            clap::Arg::new("protocol")
+                .long("protocol")
+                .short('R')
+                .takes_value(true)
+                .multiple_occurrences(true)
+                .value_name("NUM")
+                .help("Enable rtl_433 protocol NUM; repeat to enable multiple. Replaces the default (113)"),
+        )
+        .arg(
+            clap::Arg::new("rtl_arg")
+                .long("rtl-arg")
+                .takes_value(true)
+                .multiple_occurrences(true)
+                .value_name("ARG")
+                .help("Extra raw argument to append to the rtl_433 command; may be repeated"),
+        )
         .get_matches();
 
     let mut conf = if json_config_path.exists() {

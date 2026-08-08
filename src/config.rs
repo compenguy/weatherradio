@@ -191,12 +191,47 @@ impl MqttConfig {
     }
 }
 
+// Tuning parameters passed through to `rtl_433`. Any field left as `None` (or
+// an empty collection) is omitted from the argv, so `rtl_433`'s own default
+// applies. Defaults here reproduce the values that were previously hardcoded
+// in `radio.rs`, so existing config files behave identically after upgrade.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) struct RadioConfig {
+    pub(crate) frequency: String,
+    pub(crate) gain: Option<String>,
+    pub(crate) ppm: Option<i32>,
+    pub(crate) sample_rate: Option<String>,
+    pub(crate) demod: Option<String>,
+    pub(crate) level: Option<i32>,
+    // An empty vec means "do not restrict protocols" (equivalent to omitting -R).
+    pub(crate) protocols: Vec<u16>,
+    // Raw extra args appended verbatim to the rtl_433 command line.
+    pub(crate) extra_args: Vec<String>,
+}
+
+impl Default for RadioConfig {
+    fn default() -> Self {
+        Self {
+            frequency: "915M".to_string(),
+            gain: None,
+            ppm: None,
+            sample_rate: None,
+            demod: None,
+            level: None,
+            protocols: vec![113],
+            extra_args: Vec::new(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub(crate) struct Config {
     pub(crate) output_level: Option<u8>,
     pub(crate) rtl_433: Option<std::path::PathBuf>,
     pub(crate) mqtt: Option<MqttConfig>,
     pub(crate) sensor_ignores: HashSet<String>,
+    #[serde(default)]
+    pub(crate) radio: RadioConfig,
 }
 
 impl TryFrom<&std::path::Path> for Config {
@@ -269,6 +304,43 @@ impl Config {
                 .flatten()
                 .map(|s| s.to_owned()),
         );
+
+        if let Some(v) = arg_matches.value_of("frequency") {
+            self.radio.frequency = v.to_owned();
+        }
+        if let Some(v) = arg_matches.value_of("gain") {
+            self.radio.gain = Some(v.to_owned());
+        }
+        if let Some(v) = arg_matches.value_of("ppm") {
+            self.radio.ppm = Some(
+                v.parse()
+                    .with_context(|| format!("Invalid integer value for --ppm: {}", v))?,
+            );
+        }
+        if let Some(v) = arg_matches.value_of("sample_rate") {
+            self.radio.sample_rate = Some(v.to_owned());
+        }
+        if let Some(v) = arg_matches.value_of("demod") {
+            self.radio.demod = Some(v.to_owned());
+        }
+        if let Some(v) = arg_matches.value_of("level") {
+            self.radio.level = Some(
+                v.parse()
+                    .with_context(|| format!("Invalid integer value for --level: {}", v))?,
+            );
+        }
+        if let Some(vs) = arg_matches.values_of("protocol") {
+            let parsed: Result<Vec<u16>> = vs
+                .map(|s| {
+                    s.parse::<u16>()
+                        .with_context(|| format!("Invalid protocol number: {}", s))
+                })
+                .collect();
+            self.radio.protocols = parsed?;
+        }
+        if let Some(vs) = arg_matches.values_of("rtl_arg") {
+            self.radio.extra_args = vs.map(|s| s.to_owned()).collect();
+        }
 
         Ok(())
     }
